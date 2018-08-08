@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/gsm-at-comm.iml" filepath="$PROJECT_DIR$/gsm-at-comm.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/gsm-at-comm_main.iml" filepath="$PROJECT_DIR$/.idea/modules/gsm-at-comm_main.iml" group="gsm-at-comm" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/gsm-at-comm_test.iml" filepath="$PROJECT_DIR$/.idea/modules/gsm-at-comm_test.iml" group="gsm-at-comm" />
+    </modules>
+  </component>
+</project>
