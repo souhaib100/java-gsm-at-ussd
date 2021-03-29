@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: com.fazecast:jSerialComm:2.6.2">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.fazecast/jSerialComm/2.6.2/f5f001dc596a3b30d9c3e39cec393f1a1268f399/jSerialComm-2.6.2.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/com.fazecast/jSerialComm/2.6.2/295af22506b39fbee763ea333b209440a067be8f/jSerialComm-2.6.2-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

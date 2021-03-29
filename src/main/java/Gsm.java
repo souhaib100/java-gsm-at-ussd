@@ -1,3 +1,5 @@
+
+
 import com.fazecast.jSerialComm.SerialPort;
 import com.fazecast.jSerialComm.SerialPortDataListener;
 import com.fazecast.jSerialComm.SerialPortEvent;
@@ -5,32 +7,35 @@ import com.google.common.base.Splitter;
 import com.google.common.primitives.Longs;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.logging.Logger;
 
 public class Gsm {
-
     private SerialPort serialPort;
-    private Logger logger;
     private String result;
+    public static String[] SmsStorage = new String[]{"MT", "SM"};
+    ;
 
     /**
      * Execute AT command
      *
-     * @param at : the AT command
+     * @param at          : the AT command
+     * @param waitingTime
      * @return String contains the response
      */
-    public String executeAT(String at) {
+    public String executeAT(String at, int waitingTime) {
         at = at + "\r\n";
         result = "";
-        serialPort.writeBytes((at).getBytes(), at.getBytes().length);
-        while (result.equals("")) {
+        int i = 0;
+        byte[] bytes = at.getBytes();
+        serialPort.writeBytes(bytes, bytes.length);
+        while ((result.trim().equals("") || result.trim().equals("\n")) && i < waitingTime) {
             try {
-                Thread.sleep(20);
+                i++;
+                Thread.sleep(500);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
+        System.out.println(result);
         return result;
     }
 
@@ -41,36 +46,37 @@ public class Gsm {
      * @return String contains the response
      */
     public String executeUSSD(String ussd) {
-        String cmd = "at+cusd=1,\"" + ussd + "\", 15\r\n";
+//        executeAT("AT+CUSD=1", 1);
+        String cmd = "AT+CUSD=1,\"" + ussd + "\",15";
         result = "";
-        serialPort.writeBytes((cmd).getBytes(), cmd.getBytes().length);
-        while (result.equals("")) {
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
+        // serialPort.writeBytes((cmd).getBytes(), cmd.getBytes().length);
+        executeAT(cmd, 2);
         if (result.contains("ERROR")) {
+            System.out.println("USSD error");
             return result;
         }
-        while (result.contains("OK")) {
+        String str = "";
+        result = "";
+        int waiting = 0;
+        while ((result.trim().equals("") || result.trim().equals("\n")) && waiting < 10) {
             try {
-                Thread.sleep(20);
+                waiting++;
+                Thread.sleep(1000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }
-        String str = "";
         if (result.contains("+CUSD")) {
             str = result.substring(12, result.length() - 6);
-            //String[] arr = str.split("(?<=\\G....)");
-            Iterable<String> arr = Splitter.fixedLength(4).split(str);
-            str = "";
-            for (String s : arr) {
-                int hexVal = Integer.parseInt(s, 16);
-                str += (char) hexVal;
-            }
+            // System.out.println(result.substring(12, result.length() - 6));
+            // for huawei e173 just return the pure result, no need for extra treatment
+//            String[] arr = str.split("(?<=\\G....)");
+//            Iterable<String> arr = Splitter.fixedLength(4).split(str);
+//            str = "";
+//            for (String s : arr) {
+//                int hexVal = Integer.parseInt(s, 16);
+//                str += (char) hexVal;
+//            }
         }
         return str;
     }
@@ -81,68 +87,57 @@ public class Gsm {
      * @return ArrayList contains the sms
      */
     public ArrayList<Sms> readSms() {
-        executeAT("ATE=1");
-        if (executeAT("AT+CMGF=1").contains("ERROR")) {
-            return null;
-        } else {
-            executeAT("AT+CMGL=\"ALL\"");
-            //serialPort.writeBytes((cmd).getBytes(), cmd.getBytes().length);
-            ArrayList<Sms> str = new ArrayList<>();
-            int waiting = 0;
-            while (!result.contains("+CMGL") || waiting < 10) {
-                //String[] arr = str.split("(?<=\\G....)");
-                System.out.println(result);
-                if (result.contains("+CMGL")) {
-                    String[] strs = result.replace("\"", "").split("(?:,)|(?:\r\n)");
-                    System.out.println(Arrays.toString(strs));
-                    Sms sms;
-                    for (int i = 1; i < strs.length - 1; i++) {
-                        //String str1 = strs[i];
-                        sms = new Sms();
-                        sms.setId(Integer.parseInt(strs[i].charAt(strs[i].length() - 1) + ""));
-                        i++;
-                        sms.setStatus(strs[i]);
-                        i++;
-                        sms.setPhone_num(strs[i]);
-                        i++;
-                        sms.setPhone_name(strs[i]);
-                        i++;
-                        sms.setDate(strs[i]);
-                        i++;
-                        sms.setTime(strs[i]);
-                        i++;
-                        if (Longs.tryParse(strs[i].substring(0, 2)) != null) { //get the message UNICODE
-                            Iterable<String> arr = Splitter.fixedLength(4).split(strs[i]);
-                            String con = "";
-                            for (String s : arr) {
-                                int hexVal = Integer.parseInt(s, 16);
-                                con += (char) hexVal;
-                            }
-                            sms.setContent(con);
-                        } else {//get the message String
-                            sms.setContent(strs[i]);
+        executeAT("ATE0", 1);
+        executeAT("AT+CSCS=\"GSM\"", 1);
+        executeAT("AT+CMGF=1", 1);
+        ArrayList<Sms> str = new ArrayList<>();
+        for (String value : SmsStorage) {
+            executeAT("AT+CPMS=\"" + value + "\"", 1);
+            executeAT("AT+CMGL=\"ALL\"", 5);
+            if (result.contains("+CMGL")) {
+                String[] strs = result.replace("\"", "").split("(?:,)|(?:\r\n)");
+                Sms sms;
+                for (int i = 1; i < strs.length - 1; i++) {
+                    sms = new Sms();
+                    sms.setId(Integer.parseInt(strs[i].charAt(strs[i].length() - 1) + ""));
+                    sms.setStorage(value);
+                    i++;
+                    sms.setStatus(strs[i]);
+                    i++;
+                    sms.setPhone_num(strs[i]);
+                    i++;
+                    sms.setPhone_name(strs[i]);
+                    i++;
+                    sms.setDate(strs[i]);
+                    i++;
+                    sms.setTime(strs[i]);
+                    i++;
+                    if (Longs.tryParse(strs[i].substring(0, 2)) != null) { //get the message UNICODE
+                        Iterable<String> arr = Splitter.fixedLength(4).split(strs[i]);
+                        StringBuilder con = new StringBuilder();
+                        for (String s : arr) {
+                            int hexVal = Integer.parseInt(s, 16);
+                            con.append((char) hexVal);
                         }
-                        if (!strs[i + 1].equals("") && !strs[i + 1].startsWith("+")) {
-                            i++;
-                            sms.setContent(sms.getContent() + "\n" + strs[i]);
-                            i++;
-                        }
-                        str.add(sms);
+                        sms.setContent(con.toString());
+                    } else {//get the message String
+                        sms.setContent(strs[i]);
                     }
-                    break;
-                } else {
-                    try {
-                        Thread.sleep(1000);
-                        waiting++;
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                    if (!strs[i + 1].equals("") && !strs[i + 1].startsWith("+")) {
+                        i++;
+                        sms.setContent(sms.getContent() + "\n" + strs[i]);
+                        i++;
+                    }
+                    str.add(sms);
+                    if (strs[i + 1].equals("") && strs[i + 2].equals("OK")) {
+                        break;
                     }
                 }
             }
-            return str;
         }
-
+        return str;
     }
+
 
     /**
      * Send an sms
@@ -152,18 +147,26 @@ public class Gsm {
      * @return ?
      */
     public String sendSms(String num, String sms) {
-        String res = "";
-        executeAT("ATE=0");
-        executeAT("AT+CSCS=\"GSM\"");
-        if (executeAT("AT+CMGF=1").contains("ERROR")) {
-            return null;
-        } else {
-            executeAT("AT+CMGS=\"" + num + "\"");
-            executeAT(sms);
-            executeAT(Character.toString((char) 26));
-            System.out.println(result);
-        }
-        return res;
+        executeAT("ATE0", 1);
+        executeAT("AT+CSCS=\"GSM\"", 1);
+        executeAT("AT+CMGF=1", 1);
+        executeAT("AT+CMGS=\"" + num + "\"", 2);
+        executeAT(sms, 2);
+        executeAT(Character.toString((char) 26), 10);
+        System.out.println(result);
+        return result;
+    }
+
+    public String deleteSms(int smsId, String storage) {
+        executeAT("AT+CPMS=\"" + storage + "\"", 1);
+        executeAT("AT+CMGD=" + smsId, 1);
+        return result;
+    }
+
+    public String deleteAllSms(String storage) {
+        executeAT("AT+CPMS=\"" + storage + "\"", 1);
+        executeAT("AT+CMGD=0, 4", 1);
+        return result;
     }
 
     /**
@@ -173,11 +176,8 @@ public class Gsm {
      * @return true if port was opened successfully
      */
     public boolean initialize(String port) {
-        logger = Logger.getLogger("SP1");
-        logger.info("Application start");
         serialPort = SerialPort.getCommPort(port);
         if (serialPort.openPort()) {
-            logger.info("Port \"" + serialPort.getSystemPortName() + "\" was opened");
             serialPort.addDataListener(new SerialPortDataListener() {
                 @Override
                 public int getListeningEvents() {
@@ -186,19 +186,20 @@ public class Gsm {
 
                 @Override
                 public void serialEvent(SerialPortEvent event) {
-                    logger.info("receiving data");
                     byte[] msg = new byte[serialPort.bytesAvailable()];
                     serialPort.readBytes(msg, msg.length);
-                    String res = new String(msg);
-//                    System.out.println(res);
-                    result = res;
+                    //System.out.println(res);
+                    result = new String(msg);
                 }
             });
+            // Prepare for ussd
+//            executeAT("AT^USSDMODE=0", 1);
+//            if (result.equals(""))
+//                return false;
+            // turn off periodic status messages (RSSI status, etc.)
+//            executeAT("AT^CURC=0", 1);
             return true;
-        } else
-
-        {
-            logger.warning("Failed to open port \"" + serialPort.getSystemPortName() + "\", application stopped.");
+        } else {
             return false;
         }
 
@@ -217,12 +218,16 @@ public class Gsm {
         return systemPorts;
     }
 
+
     /**
      * Close the connection
      *
      * @return true if port was closed successfully
      */
     public boolean closePort() {
-        return serialPort.closePort();
+        if (serialPort != null)
+            return serialPort.closePort();
+        else
+            return true;
     }
 }

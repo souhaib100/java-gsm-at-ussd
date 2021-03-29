@@ -1,5 +1,6 @@
 public class Sms {
     private int id;
+    private String storage;
     private String status;
     private String phone_num;
     private String phone_name;
@@ -13,6 +14,14 @@ public class Sms {
 
     public void setId(int id) {
         this.id = id;
+    }
+
+    public String getStorage() {
+        return storage;
+    }
+
+    public void setStorage(String storage) {
+        this.storage = storage;
     }
 
     public String getStatus() {
@@ -65,6 +74,6 @@ public class Sms {
 
     @Override
     public String toString() {
-        return getId() + " " + getStatus() + " " + getPhone_num() + " " + getDate() + " " + getTime() + " " + getContent();
+        return getId() + " " + getStorage() + " " + getStatus() + " " + getPhone_num() + " " + getDate() + " " + getTime() + " " + getContent();
     }
 }

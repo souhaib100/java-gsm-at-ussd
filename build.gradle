@@ -5,7 +5,7 @@ plugins {
 group 'com.souhaib100.workapps'
 version '0.5-SNAPSHOT'
 
-sourceCompatibility = 10
+sourceCompatibility = 15
 
 repositories {
     mavenCentral()
@@ -13,6 +13,10 @@ repositories {
 
 dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
-    compile 'com.fazecast:jSerialComm:[2.1.1]'
-    compile 'com.google.guava:guava:26.0-jre'
+    // https://mvnrepository.com/artifact/com.fazecast/jSerialComm
+    implementation group: 'com.fazecast', name: 'jSerialComm', version: '2.6.2'
+
+    // https://mvnrepository.com/artifact/com.google.guava/guava
+    implementation group: 'com.google.guava', name: 'guava', version: '30.1.1-jre'
+
 }
